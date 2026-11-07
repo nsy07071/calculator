@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>계산기</title>
+  <style>
+    :root {
+      --page-bg: #efe9df;
+      --text: #2b2b2b;
+      --muted: #6b6560;
+      --card-bg: #fbf8f3;
+      --card-border: #ddd4c6;
+      --body-bg: #3a3d42;
+      --body-edge: #2a2c30;
+      --lcd-bg: #b9c7a5;
+      --lcd-text: #1f2a1a;
+      --lcd-dim: rgba(31, 42, 26, 0.18);
+      --key-num: #f4f1ea;
+      --key-num-text: #222;
+      --key-fn: #8d939b;
+      --key-fn-text: #fff;
+      --key-op: #5d636b;
+      --key-op-text: #fff;
+      --key-mem: #6f7680;
+      --key-clear: #d9603b;
+      --key-eq: #e8a23a;
+      --key-eq-text: #2b1a00;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --page-bg: #1b1c1f;
+        --text: #e8e6e3;
+        --muted: #a29c95;
+        --card-bg: #24262a;
+        --card-border: #34373c;
+      }
+    }
+    :root[data-theme="dark"] {
+      --page-bg: #1b1c1f;
+      --text: #e8e6e3;
+      --muted: #a29c95;
+      --card-bg: #24262a;
+      --card-border: #34373c;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page-bg);
+      color: var(--text);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+    h1 { margin: 8px 0 20px; font-size: 1.8rem; letter-spacing: 0.1em; }
+
+    .calc {
+      width: 100%;
+      max-width: 380px;
+      background: var(--body-bg);
+      border-radius: 22px;
+      padding: 20px 18px 22px;
+      box-shadow: 0 6px 0 var(--body-edge), 0 14px 30px rgba(0,0,0,0.25);
+    }
+    .brand {
+      color: #c9ccd1;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      white-space: nowrap;
+      margin: 0 4px 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .lcd {
+      background: var(--lcd-bg);
+      color: var(--lcd-text);
+      border-radius: 8px;
+      padding: 8px 12px 10px;
+      margin-bottom: 18px;
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.3);
+      user-select: none;
+    }
+    .indicators {
+      display: flex;
+      gap: 10px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      height: 1rem;
+    }
+    .indicators span { color: var(--lcd-dim); }
+    .indicators span.on { color: var(--lcd-text); }
+    .indicators .ind-op { margin-left: auto; min-width: 1em; text-align: right; color: var(--lcd-text); }
+    .screen {
+      font-family: "Consolas", "Courier New", ui-monospace, monospace;
+      font-size: 2.4rem;
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      line-height: 2.9rem;
+      height: 2.9rem;
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 9px;
+    }
+    .keys button {
+      font: inherit;
+      font-size: 1.15rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      padding: 0;
+      height: 52px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.35);
+      transition: transform 0.05s, box-shadow 0.05s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .keys button:active, .keys button.pressed {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 rgba(0,0,0,0.35);
+    }
+    .num { background: var(--key-num); color: var(--key-num-text); }
+    .fn { background: var(--key-fn); color: var(--key-fn-text); font-size: 1rem !important; }
+    .op { background: var(--key-op); color: var(--key-op-text); font-size: 1.4rem !important; }
+    .mem { background: var(--key-mem); color: #fff; font-size: 0.9rem !important; height: 40px !important; }
+    .clear { background: var(--key-clear); color: #fff; font-size: 1rem !important; }
+    .eq { background: var(--key-eq); color: var(--key-eq-text); font-size: 1.5rem !important; }
+    .tall { grid-row: span 2; height: auto !important; }
+
+    .help {
+      width: 100%;
+      max-width: 380px;
+      margin-top: 28px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .help h2 { font-size: 1rem; margin: 0 0 8px; }
+    .help ul { margin: 0; padding-left: 1.1em; }
+    .help code { background: var(--key-eq); color: var(--key-eq-text); padding: 0 4px; border-radius: 4px; }
+    .help p { margin: 10px 0 0; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <h1>계산기</h1>
+
+  <div class="calc">
+    <div class="brand"><span>CALCULATOR</span><span>12 DIGITS</span></div>
+    <div class="lcd">
+      <div class="indicators">
+        <span id="ind-m">M</span>
+        <span id="ind-gt">GT</span>
+        <span id="ind-e">E</span>
+        <span class="ind-op" id="ind-op"></span>
+      </div>
+      <div class="screen" id="screen">0.</div>
+    </div>
+
+    <div class="keys">
+      <button class="mem" data-k="MC">MC</button>
+      <button class="mem" data-k="MR">MR</button>
+      <button class="mem" data-k="M-">M−</button>
+      <button class="mem" data-k="M+">M+</button>
+      <button class="mem" data-k="GT">GT</button>
+
+      <button class="clear" data-k="AC">AC</button>
+      <button class="clear" data-k="CE">CE</button>
+      <button class="fn" data-k="BS">▶</button>
+      <button class="fn" data-k="SQRT">√</button>
+      <button class="op" data-k="/">÷</button>
+
+      <button class="num" data-k="7">7</button>
+      <button class="num" data-k="8">8</button>
+      <button class="num" data-k="9">9</button>
+      <button class="fn" data-k="%">%</button>
+      <button class="op" data-k="*">×</button>
+
+      <button class="num" data-k="4">4</button>
+      <button class="num" data-k="5">5</button>
+      <button class="num" data-k="6">6</button>
+      <button class="fn" data-k="NEG">±</button>
+      <button class="op" data-k="-">−</button>
+
+      <button class="num" data-k="1">1</button>
+      <button class="num" data-k="2">2</button>
+      <button class="num" data-k="3">3</button>
+      <button class="eq tall" data-k="=">=</button>
+      <button class="op tall" data-k="+">+</button>
+
+      <button class="num" data-k="0">0</button>
+      <button class="num" data-k="00">00</button>
+      <button class="num" data-k=".">.</button>
+    </div>
+  </div>
+
+  <section class="help">
+    <h2>사용법</h2>
+    <ul>
+      <li><b>입력한 순서대로 계산</b>: <code>2 + 3 × 4 =</code> → 20</li>
+      <li><b>%</b>: <code>200 × 15 %</code> → 30 · <code>200 + 10 %</code> → 220 (할증) · <code>200 − 10 %</code> → 180 (할인) · <code>30 ÷ 120 %</code> → 25</li>
+      <li><b>= 반복(상수 계산)</b>: <code>5 + 3 = = =</code> → 8, 11, 14 · <code>2 × 5 = 7 =</code> → 10, 14</li>
+      <li><b>제곱</b>: <code>9 × =</code> → 81</li>
+      <li><b>메모리</b>: M+ 더하기, M− 빼기, MR 불러오기, MC 지우기</li>
+      <li><b>GT</b>: =로 나온 결과의 총합을 보여줍니다. GT를 두 번 누르면 총합을 지웁니다.</li>
+      <li><b>AC</b> 전체 지우기(메모리, GT는 유지) · <b>CE</b> 방금 입력한 숫자만 지우기 · <b>▶</b> 한 자리 지우기</li>
+    </ul>
+    <p>키보드도 쓸 수 있습니다: 숫자, <code>+ - * /</code>, <code>Enter</code>(=), <code>%</code>, <code>Backspace</code>(▶), <code>Delete</code>(CE), <code>Esc</code>(AC)</p>
+  </section>
+
+  <script>
+    const MAX_DIGITS = 12;
+    const LIMIT = 1e12;
+    const OP_SYMBOL = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
+    const s = {
+      entry: '0',      // 화면에 보이는 숫자 (문자열)
+      typing: false,   // 지금 숫자를 입력하는 중인지
+      fresh: false,    // 화면의 숫자가 새로 넣은 값인지 (연산 대상)
+      acc: 0,          // 앞에서 계산된 값
+      op: null,        // 대기 중인 연산자
+      constOp: null,   // = 반복용 연산자
+      constVal: null,  // = 반복용 숫자
+      mem: 0,
+      gt: 0,
+      err: false,
+      lastKey: null,
+    };
+
+    const $screen = document.getElementById('screen');
+
+    function round(v) { return Number(v.toPrecision(15)); }
+
+    function fmt(v) {
+      v = round(v);
+      if (v === 0) return '0';
+      const neg = v < 0;
+      const a = Math.abs(v);
+      const intDigits = Math.floor(a).toString().length;
+      const dec = Math.max(0, MAX_DIGITS - intDigits);
+      let str = a.toFixed(dec);
+      if (str.includes('.')) str = str.replace(/0+$/, '').replace(/\.$/, '');
+      if (str === '0') return '0';
+      return (neg ? '-' : '') + str;
+    }
+
+    const cur = () => parseFloat(s.entry);
+
+    function fail() { s.err = true; }
+
+    // 화면에 값을 표시. 범위를 넘으면 오류.
+    function setVal(v, asOperand) {
+      if (!isFinite(v) || Math.abs(round(v)) >= LIMIT) { fail(); return false; }
+      s.entry = fmt(v);
+      s.typing = false;
+      s.fresh = asOperand;
+      return true;
+    }
+
+    function calc(a, op, b) {
+      switch (op) {
+        case '+': return round(a + b);
+        case '-': return round(a - b);
+        case '*': return round(a * b);
+        case '/': return b === 0 ? NaN : round(a / b);
+      }
+    }
+
+    function addGT(v) {
+      const g = round(s.gt + v);
+      if (Math.abs(g) >= LIMIT) { fail(); return; }
+      s.gt = g;
+    }
+
+    function digitCount(str) { return str.replace(/[-.]/g, '').length; }
+
+    function inputDigit(d) {
+      if (!s.typing) { s.entry = '0'; s.typing = true; s.fresh = true; }
+      for (const ch of d) {
+        if (digitCount(s.entry) >= MAX_DIGITS) break;
+        if (s.entry === '0') s.entry = ch;
+        else if (s.entry === '-0') s.entry = '-' + ch;
+        else s.entry += ch;
+      }
+    }
+
+    function inputDot() {
+      if (!s.typing) { s.entry = '0.'; s.typing = true; s.fresh = true; return; }
+      if (!s.entry.includes('.')) s.entry += '.';
+    }
+
+    function operator(o) {
+      if (s.op && s.fresh) {
+        const r = calc(s.acc, s.op, cur());
+        if (isNaN(r) || !setVal(r, false)) return fail();
+        s.acc = cur();
+      } else if (!s.op) {
+        s.acc = cur();
+      }
+      s.op = o;
+      s.typing = false;
+      s.fresh = false;
+    }
+
+    function equals() {
+      let r;
+      if (s.op) {
+        const a = s.acc;
+        const b = s.fresh ? cur() : s.acc;   // "9 × =" 처럼 숫자 없이 = 를 누르면 자기 자신과 계산
+        r = calc(a, s.op, b);
+        if (s.op === '*') { s.constOp = '*'; s.constVal = a; }   // 곱셈은 앞 숫자가 상수
+        else { s.constOp = s.op; s.constVal = b; }                // 나머지는 뒤 숫자가 상수
+        s.op = null;
+      } else if (s.constOp) {
+        const x = cur();
+        r = s.constOp === '*' ? calc(s.constVal, '*', x) : calc(x, s.constOp, s.constVal);
+      } else {
+        r = cur();
+      }
+      if (isNaN(r) || !setVal(r, false)) return fail();
+      s.acc = cur();
+      addGT(s.acc);
+    }
+
+    function percent() {
+      const b = cur();
+      let r;
+      if (s.op) {
+        const a = s.acc;
+        switch (s.op) {
+          case '*': r = a * b / 100; break;
+          case '/': r = b === 0 ? NaN : a / b * 100; break;
+          case '+': r = a + a * b / 100; break;
+          case '-': r = a - a * b / 100; break;
+        }
+        s.op = null;
+        s.constOp = null;
+      } else {
+        r = b / 100;
+      }
+      r = round(r);
+      if (isNaN(r) || !setVal(r, false)) return fail();
+      s.acc = cur();
+      addGT(s.acc);
+    }
+
+    function sqrt() {
+      const v = cur();
+      if (v < 0) return fail();
+      setVal(Math.sqrt(v), true);
+    }
+
+    function negate() {
+      if (s.typing) {
+        s.entry = s.entry.startsWith('-') ? s.entry.slice(1) : '-' + s.entry;
+      } else {
+        setVal(-cur(), true);
+      }
+    }
+
+    function backspace() {
+      if (!s.typing) return;
+      s.entry = s.entry.slice(0, -1);
+      if (s.entry === '' || s.entry === '-') s.entry = '0';
+    }
+
+    function memory(sign) {
+      if (s.op) { equals(); if (s.err) return; }
+      const m = round(s.mem + sign * cur());
+      if (Math.abs(m) >= LIMIT) return fail();
+      s.mem = m;
+      s.typing = false;
+      s.fresh = false;
+    }
+
+    function allClear() {
+      Object.assign(s, { entry: '0', typing: false, fresh: false, acc: 0, op: null,
+                         constOp: null, constVal: null, err: false });
+    }
+
+    function press(k) {
+      if (s.err && k !== 'AC' && k !== 'CE') return;
+      switch (k) {
+        case 'AC': allClear(); break;
+        case 'CE':
+          if (s.err) { allClear(); break; }
+          s.entry = '0'; s.typing = false; s.fresh = false; break;
+        case '.': inputDot(); break;
+        case '+': case '-': case '*': case '/': operator(k); break;
+        case '=': equals(); break;
+        case '%': percent(); break;
+        case 'SQRT': sqrt(); break;
+        case 'NEG': negate(); break;
+        case 'BS': backspace(); break;
+        case 'M+': memory(1); break;
+        case 'M-': memory(-1); break;
+        case 'MR': setVal(s.mem, true); break;
+        case 'MC': s.mem = 0; break;
+        case 'GT':
+          if (s.lastKey === 'GT') s.gt = 0;
+          else setVal(s.gt, true);
+          break;
+        default:
+          if (/^\d+$/.test(k)) inputDigit(k);
+      }
+      s.lastKey = k;
+      render();
+    }
+
+    function withCommas(str) {
+      const neg = str.startsWith('-');
+      if (neg) str = str.slice(1);
+      let [i, d] = str.split('.');
+      i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return (neg ? '-' : '') + i + '.' + (d ?? '');
+    }
+
+    function render() {
+      const text = s.err ? 'Error' : withCommas(s.entry);
+      $screen.textContent = text;
+      // 숫자가 화면 폭을 넘으면 글자 크기를 줄여서 다 보이게 함
+      let size = 2.4;
+      $screen.style.fontSize = size + 'rem';
+      while ($screen.scrollWidth > $screen.clientWidth && size > 1) {
+        size -= 0.1;
+        $screen.style.fontSize = size.toFixed(1) + 'rem';
+      }
+      document.getElementById('ind-m').classList.toggle('on', s.mem !== 0);
+      document.getElementById('ind-gt').classList.toggle('on', s.gt !== 0);
+      document.getElementById('ind-e').classList.toggle('on', s.err);
+      document.getElementById('ind-op').textContent = s.op ? OP_SYMBOL[s.op] : '';
+    }
+
+    document.querySelector('.keys').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (b) press(b.dataset.k);
+    });
+
+    const KEYMAP = { Enter: '=', '=': '=', Backspace: 'BS', Delete: 'CE', Escape: 'AC',
+                     '+': '+', '-': '-', '*': '*', '/': '/', '%': '%', '.': '.', ',': '.' };
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = /^\d$/.test(e.key) ? e.key : KEYMAP[e.key];
+      if (!k) return;
+      e.preventDefault();
+      press(k);
+      const btn = document.querySelector(`.keys button[data-k="${CSS.escape(k)}"]`);
+      if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 100); }
+    });
+
+    window.calcPress = press;  // 테스트용
+    render();
+  </script>
+</body>
+</html>
